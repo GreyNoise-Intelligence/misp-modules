@@ -107,7 +107,7 @@ def handler(q=False):  # noqa: C901
     if vulnerability:
         if request["config"]["api_type"] and request["config"]["api_type"] == "enterprise":
             greynoise_api_url = "https://api.greynoise.io/v2/experimental/gnql/stats"
-            querystring = {"query": "last_seen:1w cve:" + {vulnerability}}
+            querystring = {"query": "last_seen:1w cve:{}"}.format(vulnerability)
         else:
             misperrors["error"] = "Vulnerability Not Supported with Community API Key"
             return misperrors
