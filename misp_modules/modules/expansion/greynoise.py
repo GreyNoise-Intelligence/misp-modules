@@ -1,10 +1,11 @@
-import requests
 import json
 
+import requests
+
 misperrors = {"error": "Error"}
-mispattributes = {"input": ["ip-dst", "ip-src"], "output": ["text"]}
+mispattributes = {"input": ["ip-dst", "ip-src", "vulnerability"], "output": ["text"]}
 moduleinfo = {
-    "version": "1.0",
+    "version": "1.1",
     "author": "Brad Chiappetta <brad@greynoise.io>",
     "description": "Module to access GreyNoise.io API.",
     "module-type": ["hover"],
@@ -15,15 +16,14 @@ codes_mapping = {
     "0x01": "The IP has been observed by the GreyNoise sensor network",
     "0x02": "The IP has been observed scanning the GreyNoise sensor network, "
     "but has not completed a full connection, meaning this can be spoofed",
-    "0x03": "The IP is adjacent to another host that has been directly observed by "
-    "the GreyNoise sensor network",
+    "0x03": "The IP is adjacent to another host that has been directly observed by the GreyNoise sensor network",
     "0x04": "Reserved",
     "0x05": "This IP is commonly spoofed in Internet-scan activity",
-    "0x06": "This IP has been observed as noise, but this host belongs to a cloud "
-    "provider where IPs can be cycled frequently",
+    "0x06": "This IP has been observed as noise, but this host belongs to a cloud provider where IPs can be cycled frequently",
     "0x07": "This IP is invalid",
-    "0x08": "This IP was classified as noise, but has not been observed engaging in "
-    "Internet-wide scans or attacks in over 60 days",
+    "0x08": "This IP was classified as noise, but has not been observed engaging in Internet-wide scans or attacks in over 90 days",
+    "0x09": "IP was found in RIOT",
+    "0x10": "IP has been observed by the GreyNoise sensor network and is in RIOT",
 }
 
 
@@ -33,66 +33,100 @@ def handler(q=False):  # noqa: C901
     request = json.loads(q)
     if not request.get("config") or not request["config"].get("api_key"):
         return {"error": "Missing Greynoise API key."}
-    if request["config"]["api_type"] and request["config"]["api_type"] == "enterprise":
-        greynoise_api_url = "https://api.greynoise.io/v2/noise/quick/"
-    else:
-        greynoise_api_url = "https://api.greynoise.io/v3/community/"
 
     headers = {
         "Accept": "application/json",
         "key": request["config"]["api_key"],
         "User-Agent": "greynoise-misp-module-{}".format(moduleinfo["version"]),
     }
-    for input_type in mispattributes["input"]:
-        if input_type in request:
-            ip = request[input_type]
-            break
-    else:
-        misperrors["error"] = "Unsupported attributes type."
+
+    if not (request.get("vulnerability") or request.get("ip-dst") or request.get("ip-src")):
+        misperrors["error"] = "Vulnerability id missing"
         return misperrors
-    response = requests.get(f"{greynoise_api_url}{ip}", headers=headers)  # Real request
-    if response.status_code == 200:
-        if request["config"]["api_type"] == "enterprise":
+
+    ip = ""
+    vulnerability = ""
+
+    if request.get("ip-dst"):
+        ip = request("ip-dst")
+    elif request.get("ip-src"):
+        ip = request("ip-src")
+    else:
+        vulnerability = request("vulnerability")
+
+    if ip:
+        if request["config"]["api_type"] and request["config"]["api_type"] == "enterprise":
+            greynoise_api_url = "https://api.greynoise.io/v2/noise/quick/"
+        else:
+            greynoise_api_url = "https://api.greynoise.io/v3/community/"
+
+        response = requests.get(f"{greynoise_api_url}{ip}", headers=headers)  # Real request for IP Query
+        if response.status_code == 200:
+            if request["config"]["api_type"] == "enterprise":
+                return {
+                    "results": [
+                        {
+                            "types": ["text"],
+                            "values": codes_mapping[response.json()["code"]],
+                        }
+                    ]
+                }
+            elif response.json()["noise"]:
+                return {
+                    "results": [
+                        {
+                            "types": ["text"],
+                            "values": "IP Address ({}) has been observed by GreyNoise "
+                            "scanning the internet in the last 90 days. GreyNoise has "
+                            "classified it as {} and it was last seen on {}. For more "
+                            "information visit {}".format(
+                                response.json()["ip"],
+                                response.json()["classification"],
+                                response.json()["last_seen"],
+                                response.json()["link"],
+                            ),
+                        }
+                    ]
+                }
+            elif response.json()["riot"]:
+                return {
+                    "results": [
+                        {
+                            "types": ["text"],
+                            "values": "IP Address ({}) is part of GreyNoise Project RIOT "
+                            "and likely belongs to a benign service from {}.  For more "
+                            "information visit {}".format(
+                                response.json()["ip"],
+                                response.json()["name"],
+                                response.json()["link"],
+                            ),
+                        }
+                    ]
+                }
+
+    if vulnerability:
+        if request["config"]["api_type"] and request["config"]["api_type"] == "enterprise":
+            greynoise_api_url = "https://api.greynoise.io/v2/experimental/gnql/stats"
+            querystring = {"query": "last_seen:1w cve:" + {vulnerability}}
+        else:
+            misperrors["error"] = "Vulnerability Not Supported with Community API Key"
+            return misperrors
+
+        response = requests.get(f"{greynoise_api_url}", headers=headers, params=querystring)  # Real request
+
+        if response.status_code == 200:
             return {
                 "results": [
                     {
                         "types": ["text"],
-                        "values": codes_mapping[response.json()["code"]],
+                        "values": "GreyNoise has observed {} distinct IPs scanning for "
+                        "CVE ({}) over the last 7 days. For more information "
+                        "visit https://www.greynoise.io/viz/query/?gnql="
+                        "cve%3A{}%20last_seen%3A1w".format(response.json()["count"], vulnerability, vulnerability),
                     }
                 ]
             }
-        elif response.json()["noise"]:
-            return {
-                "results": [
-                    {
-                        "types": ["text"],
-                        "values": "IP Address ({}) has been observed by GreyNoise "
-                        "scanning the internet in the last 90 days. GreyNoise has "
-                        "classified it as {} and it was last seen on {}. For more "
-                        "information visit {}".format(
-                            response.json()["ip"],
-                            response.json()["classification"],
-                            response.json()["last_seen"],
-                            response.json()["link"],
-                        ),
-                    }
-                ]
-            }
-        elif response.json()["riot"]:
-            return {
-                "results": [
-                    {
-                        "types": ["text"],
-                        "values": "IP Address ({}) is part of GreyNoise Project RIOT "
-                        "and likely belongs to a benign service from {}.  For more "
-                        "information visit {}".format(
-                            response.json()["ip"],
-                            response.json()["name"],
-                            response.json()["link"],
-                        ),
-                    }
-                ]
-            }
+
     # There is an error
     errors = {
         400: "Bad request.",
@@ -103,9 +137,7 @@ def handler(q=False):  # noqa: C901
     try:
         misperrors["error"] = errors[response.status_code]
     except KeyError:
-        misperrors[
-            "error"
-        ] = f"GreyNoise API not accessible (HTTP {response.status_code})"
+        misperrors["error"] = f"GreyNoise API not accessible (HTTP {response.status_code})"
     return misperrors
 
 
