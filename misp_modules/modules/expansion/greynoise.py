@@ -48,11 +48,11 @@ def handler(q=False):  # noqa: C901
     vulnerability = ""
 
     if request.get("ip-dst"):
-        ip = request("ip-dst")
+        ip = request.get("ip-dst")
     elif request.get("ip-src"):
-        ip = request("ip-src")
+        ip = request.get("ip-src")
     else:
-        vulnerability = request("vulnerability")
+        vulnerability = request.get('vulnerability')
 
     if ip:
         if request["config"]["api_type"] and request["config"]["api_type"] == "enterprise":
