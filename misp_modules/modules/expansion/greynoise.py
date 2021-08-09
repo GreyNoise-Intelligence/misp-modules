@@ -33,13 +33,29 @@ enterprise_context_basic_mapping = {
     'ip': ('text', 'IP Address'),
     'code_message': ('text', 'Code Message')}
 enterprise_context_advanced_mapping = {
-    'last_seen': ('text', 'Last Seen Scanning'),
-    'first_seen': ('text', 'First Seen Scanning'),
+    'noise': ('text', 'Is Internet Background Noise'),
+    'link': ('reference', 'Visualizer Link'),
+    'classification': ('text', 'Classification'),
+    'actor': ('text', 'Actor'),
     'tags': ('text', 'Tags'),
     'cve': ('text', 'CVEs'),
-    'actor': ('text', 'Actor'),
-    'classification': ('text', 'Classification'),
-    'noise': ('text', 'Is Internet Background Noise')}
+    'first_seen': ('text', 'First Seen Scanning'),
+    'last_seen': ('text', 'Last Seen Scanning'),
+    'vpn': ('text', 'Known VPN Service'),
+    'vpn_service': ('text', 'VPN Service Name'),
+    'bot': ('text', 'Known BOT'),
+    }
+enterprise_context_advanced_metadata_mapping = {
+    'asn': ('text', 'ASN'),
+    'rdns': ('text', 'rDNS'),
+    'category': ('text', 'Category'),
+    'tor': ('text', 'Known Tor Exit Node'),
+    'region': ('text', 'Region'),
+    'city': ('text', 'City'),
+    'country': ('text', 'Country'),
+    'country_code': ('text', 'Country Code'),
+    'organization': ('text', 'Organization'),
+    }
 misp_event = MISPEvent()
 
 
@@ -95,8 +111,22 @@ def handler(q=False):  # noqa: C901
                     greynoise_api_url = "https://api.greynoise.io/v2/noise/context/"
                     response = requests.get(f"{greynoise_api_url}{ip}", headers=headers)
                     response = response.json()
+                    response["link"] = "https://www.greynoise.io/viz/ip/" + ip
+                    if "tags" in response:
+                        response["tags"] = ",".join(response["tags"])
+                    if "cve" in response:
+                        response["cve"] = ",".join(response["cve"])
                     for feature in enterprise_context_advanced_mapping.keys():
                         value = response.get(feature)
+                        if value:
+                            attribute_type, relation = enterprise_context_advanced_mapping[
+                                feature]
+                            enterprise_context_object.add_attribute(relation,
+                                                                    **{
+                                                                        'type': attribute_type,
+                                                                        'value': value})
+                    for feature in enterprise_context_advanced_metadata_mapping.keys():
+                        value = response["metadata"].get(feature)
                         if value:
                             attribute_type, relation = enterprise_context_advanced_mapping[
                                 feature]
