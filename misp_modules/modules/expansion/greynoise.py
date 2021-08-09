@@ -29,6 +29,9 @@ vulnerability_mapping = {
     'id': ('vulnerability', 'CVE #'),
     'details': ('text', 'Details'),
     'count': ('text', 'Total Scanner Count')}
+enterprise_context_basic_mapping = {
+    'ip': ('text', 'IP Address'),
+    'code_message': ('text', 'Details')}
 misp_event = MISPEvent()
 
 
@@ -68,14 +71,21 @@ def handler(q=False):  # noqa: C901
         response = requests.get(f"{greynoise_api_url}{ip}", headers=headers)  # Real request for IP Query
         if response.status_code == 200:
             if request["config"]["api_type"] == "enterprise":
-                return {
-                    "results": [
-                        {
-                            "types": ["text"],
-                            "values": codes_mapping[response.json()["code"]],
-                        }
-                    ]
-                }
+                response = response.json()
+                enterprise_context_object = MISPObject('greynoise-ip-context')
+                for feature in ('ip', 'code_message'):
+                    value = response.get(feature)
+                    if value:
+                        attribute_type, relation = enterprise_context_basic_mapping[feature]
+                        enterprise_context_object.add_attribute(relation,
+                                                           **{'type': attribute_type,
+                                                              'value': value})
+
+                misp_event.add_object(enterprise_context_object)
+                event = json.loads(misp_event.to_json())
+                results = {key: event[key] for key in ('Attribute', 'Object') if
+                           (key in event and event[key])}
+                return {'results': results}
             elif response.json()["noise"]:
                 return {
                     "results": [
