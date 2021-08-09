@@ -1,6 +1,6 @@
 import json
 import requests
-from pymisp import MISPEvent, MISPObject
+from pymisp import MISPEvent, MISPObject, MISPAttribute
 
 misperrors = {"error": "Error"}
 mispattributes = {"input": ["ip-dst", "ip-src", "vulnerability"], "output": ["text"]}
@@ -120,6 +120,7 @@ def handler(q=False):  # noqa: C901
 
         if response.status_code == 200:
             vulnerability_object = MISPObject('vulnerability')
+            attribute = MISPAttribute
             response["summary"] = "test summary"
             response["id"] = vulnerability
             for feature in ('id', 'summary', 'count'):
@@ -129,6 +130,7 @@ def handler(q=False):  # noqa: C901
                     vulnerability_object.add_attribute(relation,
                                                        **{'type': attribute_type,
                                                           'value': value})
+            self.misp_event.add_attribute(**attribute)
             misp_event.add_object(vulnerability_object)
             event = json.loads(misp_event.to_json())
             results = {key: event[key] for key in ('Attribute', 'Object') if
