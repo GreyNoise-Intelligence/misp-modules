@@ -188,6 +188,18 @@ def handler(q=False):  # noqa: C901
                 results = {key: event[key] for key in ('Attribute', 'Object') if
                            (key in event and event[key])}
                 return {'results': results}
+        if response.status_code == 404:
+            response = response.json()
+            community_context_object = MISPObject('greynoise-community-ip-context')
+            for feature in ("ip", "riot"):
+                value = response.get(feature)
+                if value:
+                    attribute_type, relation = community_mapping[
+                        feature]
+                    community_context_object.add_attribute(relation,
+                                                           **{
+                                                               'type': attribute_type,
+                                                               'value': value})
 
     if vulnerability:
         if request["config"]["api_type"] and request["config"]["api_type"] == "enterprise":
