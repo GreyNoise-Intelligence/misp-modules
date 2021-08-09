@@ -133,7 +133,7 @@ def handler(q=False):  # noqa: C901
                                                        **{'type': attribute_type,
                                                           'value': value})
             classifications = response["stats"].get("classifications")
-            for item in classifications.items():
+            for item in classifications:
                 if item["classification"] == "benign":
                     value = item["count"]
                     attribute_type, relation = ('text', 'Benign Scanner Count')
