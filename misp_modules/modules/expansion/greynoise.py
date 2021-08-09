@@ -132,7 +132,7 @@ def handler(q=False):  # noqa: C901
                     vulnerability_object.add_attribute(relation,
                                                        **{'type': attribute_type,
                                                           'value': value})
-            classifications = response.get(response["stats"]["classification"])
+            classifications = response.get(response["stats"]["classifications"])
             for item in classifications:
                 if item["classification"] == "benign":
                     value = item["count"]
