@@ -26,8 +26,9 @@ codes_mapping = {
     "0x10": "IP has been observed by the GreyNoise sensor network and is in RIOT",
 }
 vulnerability_mapping = {
-    'id': ('vulnerability', 'id'), 'summary': ('text', 'summary'),
-    'vulnerable_count': ('text', 'count')}
+    'id': ('vulnerability', 'CVE #'),
+    'details': ('text', 'Details'),
+    'count': ('text', 'Total Scanner Count')}
 misp_event = MISPEvent()
 
 
@@ -121,9 +122,10 @@ def handler(q=False):  # noqa: C901
         if response.status_code == 200:
             response = response.json()
             vulnerability_object = MISPObject('vulnerability')
-            response["summary"] = "test summary"
+            response["details"] = "The Count below reflects the Number of IPs seen by " \
+                                  "GreyNoise in the last 7 days scanning for this CVE."
             response["id"] = vulnerability
-            for feature in ('id', 'summary', 'count'):
+            for feature in ('id', 'details', 'count'):
                 value = response.get(feature)
                 if value:
                     attribute_type, relation = vulnerability_mapping[feature]
