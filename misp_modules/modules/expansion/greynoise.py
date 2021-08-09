@@ -133,10 +133,26 @@ def handler(q=False):  # noqa: C901
                                                        **{'type': attribute_type,
                                                           'value': value})
             if "malicious" in response["stats"]["classification"]:
-                attribute_type, relation = ('text', 'Malicious Scanner Count')
-                vulnerability_object.add_attribute(relation,
-                                                   **{'type': attribute_type,
-                                                      'value': response["stats"]["classification"]["malicious"]})
+                classifications = response.get(response["stats"]["classification"])
+                for item in classifications:
+                    if item["classification"] == "benign":
+                        value = item["count"]
+                        attribute_type, relation = ('text', 'Benign Scanner Count')
+                        vulnerability_object.add_attribute(relation,
+                                                           **{'type': attribute_type,
+                                                              'value': value})
+                    if item["classification"] == "unknown":
+                        value = item["count"]
+                        attribute_type, relation = ('text', 'Unknown Scanner Count')
+                        vulnerability_object.add_attribute(relation,
+                                                           **{'type': attribute_type,
+                                                              'value': value})
+                    if item["classification"] == "malicious":
+                        value = item["count"]
+                        attribute_type, relation = ('text', 'Malicious Scanner Count')
+                        vulnerability_object.add_attribute(relation,
+                                                           **{'type': attribute_type,
+                                                              'value': value})
             misp_event.add_object(vulnerability_object)
             event = json.loads(misp_event.to_json())
             results = {key: event[key] for key in ('Attribute', 'Object') if
