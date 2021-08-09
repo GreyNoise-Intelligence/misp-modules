@@ -29,7 +29,6 @@ vulnerability_mapping = {
     'id': ('vulnerability', 'id'), 'summary': ('text', 'summary'),
     'vulnerable_count': ('text', 'count')}
 misp_event = MISPEvent()
-misp_event.add_attribute(**attribute)
 
 
 def handler(q=False):  # noqa: C901
@@ -120,13 +119,13 @@ def handler(q=False):  # noqa: C901
         response = requests.get(f"{greynoise_api_url}", headers=headers, params=querystring)  # Real request
 
         if response.status_code == 200:
-            vulnerability_object = MISPObject('vulnderability')
+            vulnerability_object = MISPObject('vulnerability')
             response["summary"] = "test summary"
             response["id"] = vulnerability
             for feature in ('id', 'summary', 'count'):
                 value = response.get(feature)
                 if value:
-                    attribute_type, relation = self.vulnerability_mapping[feature]
+                    attribute_type, relation = vulnerability_mapping[feature]
                     vulnerability_object.add_attribute(relation,
                                                        **{'type': attribute_type,
                                                           'value': value})
