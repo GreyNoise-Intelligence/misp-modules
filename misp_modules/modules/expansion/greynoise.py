@@ -119,8 +119,8 @@ def handler(q=False):  # noqa: C901
         response = requests.get(f"{greynoise_api_url}", headers=headers, params=querystring)  # Real request
 
         if response.status_code == 200:
+            response = response.json()
             vulnerability_object = MISPObject('vulnerability')
-            attribute = MISPAttribute
             response["summary"] = "test summary"
             response["id"] = vulnerability
             for feature in ('id', 'summary', 'count'):
@@ -130,7 +130,6 @@ def handler(q=False):  # noqa: C901
                     vulnerability_object.add_attribute(relation,
                                                        **{'type': attribute_type,
                                                           'value': value})
-            self.misp_event.add_attribute(**attribute)
             misp_event.add_object(vulnerability_object)
             event = json.loads(misp_event.to_json())
             results = {key: event[key] for key in ('Attribute', 'Object') if
