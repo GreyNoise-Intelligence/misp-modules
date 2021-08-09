@@ -56,6 +56,23 @@ enterprise_context_advanced_metadata_mapping = {
     'country_code': ('text', 'Country Code'),
     'organization': ('text', 'Organization'),
     }
+enterprise_riot_mapping = {
+    'riot': ('text', 'Is Common Business Service'),
+    'link': ('link', 'Visualizer Link'),
+    'category': ('text', 'RIOT Category'),
+    'name': ('text', 'Provider Name'),
+    'trust_level': ('text', 'RIOT Trust Level'),
+    'last_updated': ('text', 'Last Updated'),
+    }
+community_mapping = {
+    'ip': ('text', 'IP Address'),
+    'noise': ('text', 'Is Internet Background Noise'),
+    'riot': ('text', 'Is Common Business Service'),
+    'classification': ('text', 'Classification'),
+    'last_seen': ('text', 'Last Seen'),
+    'name': ('text', 'Name'),
+    'link': ('link', 'Visualizer Link'),
+    }
 misp_event = MISPEvent()
 
 
@@ -135,44 +152,42 @@ def handler(q=False):  # noqa: C901
                                                                         'type': attribute_type,
                                                                         'value': value})
 
-
+                if response["riot"]:
+                    greynoise_api_url = "https://api.greynoise.io/v2/riot/"
+                    response = requests.get(f"{greynoise_api_url}{ip}", headers=headers)
+                    response = response.json()
+                    response["link"] = "https://www.greynoise.io/viz/riot/" + ip
+                    for feature in enterprise_riot_mapping.keys():
+                        value = response.get(feature)
+                        if value:
+                            attribute_type, relation = enterprise_riot_mapping[
+                                feature]
+                            enterprise_context_object.add_attribute(relation,
+                                                                    **{
+                                                                        'type': attribute_type,
+                                                                        'value': value})
                 misp_event.add_object(enterprise_context_object)
                 event = json.loads(misp_event.to_json())
                 results = {key: event[key] for key in ('Attribute', 'Object') if
                            (key in event and event[key])}
                 return {'results': results}
             elif response.json()["noise"]:
-                return {
-                    "results": [
-                        {
-                            "types": ["text"],
-                            "values": "IP Address ({}) has been observed by GreyNoise "
-                            "scanning the internet in the last 90 days. GreyNoise has "
-                            "classified it as {} and it was last seen on {}. For more "
-                            "information visit {}".format(
-                                response.json()["ip"],
-                                response.json()["classification"],
-                                response.json()["last_seen"],
-                                response.json()["link"],
-                            ),
-                        }
-                    ]
-                }
-            elif response.json()["riot"]:
-                return {
-                    "results": [
-                        {
-                            "types": ["text"],
-                            "values": "IP Address ({}) is part of GreyNoise Project RIOT "
-                            "and likely belongs to a benign service from {}.  For more "
-                            "information visit {}".format(
-                                response.json()["ip"],
-                                response.json()["name"],
-                                response.json()["link"],
-                            ),
-                        }
-                    ]
-                }
+                response = response.json()
+                community_context_object = MISPObject('greynoise-community-ip-context')
+                for feature in community_mapping.keys():
+                    value = response.get(feature)
+                    if value:
+                        attribute_type, relation = community_mapping[
+                            feature]
+                        community_context_object.add_attribute(relation,
+                                                                **{
+                                                                    'type': attribute_type,
+                                                                    'value': value})
+                misp_event.add_object(community_context_object)
+                event = json.loads(misp_event.to_json())
+                results = {key: event[key] for key in ('Attribute', 'Object') if
+                           (key in event and event[key])}
+                return {'results': results}
 
     if vulnerability:
         if request["config"]["api_type"] and request["config"]["api_type"] == "enterprise":
