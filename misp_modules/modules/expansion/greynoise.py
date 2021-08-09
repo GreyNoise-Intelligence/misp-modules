@@ -64,7 +64,7 @@ enterprise_riot_mapping = {
     'trust_level': ('text', 'RIOT Trust Level'),
     'last_updated': ('text', 'Last Updated'),
     }
-community_mapping = {
+community_found_mapping = {
     'ip': ('text', 'IP Address'),
     'noise': ('text', 'Is Internet Background Noise'),
     'riot': ('text', 'Is Common Business Service'),
@@ -72,6 +72,12 @@ community_mapping = {
     'last_seen': ('text', 'Last Seen'),
     'name': ('text', 'Name'),
     'link': ('link', 'Visualizer Link'),
+    }
+community_not_found_mapping = {
+    'ip': ('text', 'IP Address'),
+    'noise': ('text', 'Is Internet Background Noise'),
+    'riot': ('text', 'Is Common Business Service'),
+    'message': ('text', 'Message'),
     }
 misp_event = MISPEvent()
 
@@ -174,10 +180,10 @@ def handler(q=False):  # noqa: C901
             else:
                 response = response.json()
                 community_context_object = MISPObject('greynoise-community-ip-context')
-                for feature in community_mapping.keys():
+                for feature in community_found_mapping.keys():
                     value = response.get(feature)
                     if value:
-                        attribute_type, relation = community_mapping[
+                        attribute_type, relation = community_found_mapping[
                             feature]
                         community_context_object.add_attribute(relation,
                                                                 **{
@@ -188,13 +194,13 @@ def handler(q=False):  # noqa: C901
                 results = {key: event[key] for key in ('Attribute', 'Object') if
                            (key in event and event[key])}
                 return {'results': results}
-        if response.status_code == 404:
+        if response.status_code == 404 and request["config"]["api_type"] != "enterprise":
             response = response.json()
             community_context_object = MISPObject('greynoise-community-ip-context')
-            for feature in ("ip", "riot"):
+            for feature in community_not_found_mapping.keys():
                 value = response.get(feature)
                 if value:
-                    attribute_type, relation = community_mapping[
+                    attribute_type, relation = community_not_found_mapping[
                         feature]
                     community_context_object.add_attribute(relation,
                                                            **{
