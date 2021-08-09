@@ -1,6 +1,6 @@
 import json
-
 import requests
+from pymisp import MISPEvent, MISPObject
 
 misperrors = {"error": "Error"}
 mispattributes = {"input": ["ip-dst", "ip-src", "vulnerability"], "output": ["text"]}
