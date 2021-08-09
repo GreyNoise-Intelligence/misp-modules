@@ -206,6 +206,11 @@ def handler(q=False):  # noqa: C901
                                                            **{
                                                                'type': attribute_type,
                                                                'value': value})
+            misp_event.add_object(community_context_object)
+            event = json.loads(misp_event.to_json())
+            results = {key: event[key] for key in ('Attribute', 'Object') if
+                       (key in event and event[key])}
+            return {'results': results}
 
     if vulnerability:
         if request["config"]["api_type"] and request["config"]["api_type"] == "enterprise":
