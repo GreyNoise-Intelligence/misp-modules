@@ -132,6 +132,11 @@ def handler(q=False):  # noqa: C901
                     vulnerability_object.add_attribute(relation,
                                                        **{'type': attribute_type,
                                                           'value': value})
+            if "malicious" in response["stats"]["classification"]:
+                attribute_type, relation = ('text', 'Malicious Scanner Count')
+                vulnerability_object.add_attribute(relation,
+                                                   **{'type': attribute_type,
+                                                      'value': response["stats"]["classification"]["malicious"]})
             misp_event.add_object(vulnerability_object)
             event = json.loads(misp_event.to_json())
             results = {key: event[key] for key in ('Attribute', 'Object') if
