@@ -75,7 +75,7 @@ def handler(q=False):  # noqa: C901
                 enterprise_context_object = MISPObject('greynoise-ip-context')
                 for feature in ('ip', 'code_message'):
                     if feature == "code_message":
-                        value = codes_mapping[response.get(code)]
+                        value = codes_mapping[response.get('code')]
                     else:
                         value = response.get(feature)
                     if value:
