@@ -34,7 +34,7 @@ enterprise_context_basic_mapping = {
     'code_message': ('text', 'Code Message')}
 enterprise_context_advanced_mapping = {
     'noise': ('text', 'Is Internet Background Noise'),
-    'link': ('reference', 'Visualizer Link'),
+    'link': ('link', 'Visualizer Link'),
     'classification': ('text', 'Classification'),
     'actor': ('text', 'Actor'),
     'tags': ('text', 'Tags'),
