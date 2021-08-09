@@ -128,7 +128,7 @@ def handler(q=False):  # noqa: C901
                     for feature in enterprise_context_advanced_metadata_mapping.keys():
                         value = response["metadata"].get(feature)
                         if value:
-                            attribute_type, relation = enterprise_context_advanced_mapping[
+                            attribute_type, relation = enterprise_context_advanced_metadata_mapping[
                                 feature]
                             enterprise_context_object.add_attribute(relation,
                                                                     **{
