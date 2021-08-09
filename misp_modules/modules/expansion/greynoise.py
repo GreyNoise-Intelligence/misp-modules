@@ -31,7 +31,15 @@ vulnerability_mapping = {
     'count': ('text', 'Total Scanner Count')}
 enterprise_context_basic_mapping = {
     'ip': ('text', 'IP Address'),
-    'code_message': ('text', 'Details')}
+    'code_message': ('text', 'Code Message')}
+enterprise_context_advanced_mapping = {
+    'last_seen': ('text', 'Last Seen Scanning'),
+    'first_seen': ('text', 'First Seen Scanning'),
+    'tags': ('text', 'Tags'),
+    'cve': ('text', 'CVEs'),
+    'actor': ('text', 'Actor'),
+    'classification': ('text', 'Classification'),
+    'noise': ('text', 'Is Internet Background Noise')}
 misp_event = MISPEvent()
 
 
@@ -83,6 +91,20 @@ def handler(q=False):  # noqa: C901
                         enterprise_context_object.add_attribute(relation,
                                                            **{'type': attribute_type,
                                                               'value': value})
+                if response["noise"]:
+                    greynoise_api_url = "https://api.greynoise.io/v2/noise/context/"
+                    response = requests.get(f"{greynoise_api_url}{ip}", headers=headers)
+                    response = response.json()
+                    for feature in enterprise_context_advanced_mapping.keys():
+                        value = response.get(feature)
+                        if value:
+                            attribute_type, relation = enterprise_context_advanced_mapping[
+                                feature]
+                            enterprise_context_object.add_attribute(relation,
+                                                                    **{
+                                                                        'type': attribute_type,
+                                                                        'value': value})
+
 
                 misp_event.add_object(enterprise_context_object)
                 event = json.loads(misp_event.to_json())
