@@ -126,15 +126,15 @@ def handler(q=False):  # noqa: C901
                                                               'value': value})
                 if response["noise"]:
                     greynoise_api_url = "https://api.greynoise.io/v2/noise/context/"
-                    response = requests.get(f"{greynoise_api_url}{ip}", headers=headers)
-                    response = response.json()
-                    response["link"] = "https://www.greynoise.io/viz/ip/" + ip
-                    if "tags" in response:
-                        response["tags"] = ",".join(response["tags"])
-                    if "cve" in response:
-                        response["cve"] = ",".join(response["cve"])
+                    context_response = requests.get(f"{greynoise_api_url}{ip}", headers=headers)
+                    context_response = context_response.json()
+                    context_response["link"] = "https://www.greynoise.io/viz/ip/" + ip
+                    if "tags" in context_response:
+                        context_response["tags"] = ",".join(context_response["tags"])
+                    if "cve" in context_response:
+                        context_response["cve"] = ",".join(context_response["cve"])
                     for feature in enterprise_context_advanced_mapping.keys():
-                        value = response.get(feature)
+                        value = context_response.get(feature)
                         if value:
                             attribute_type, relation = enterprise_context_advanced_mapping[
                                 feature]
@@ -143,7 +143,7 @@ def handler(q=False):  # noqa: C901
                                                                         'type': attribute_type,
                                                                         'value': value})
                     for feature in enterprise_context_advanced_metadata_mapping.keys():
-                        value = response["metadata"].get(feature)
+                        value = context_response["metadata"].get(feature)
                         if value:
                             attribute_type, relation = enterprise_context_advanced_metadata_mapping[
                                 feature]
@@ -154,11 +154,11 @@ def handler(q=False):  # noqa: C901
 
                 if response["riot"]:
                     greynoise_api_url = "https://api.greynoise.io/v2/riot/"
-                    response = requests.get(f"{greynoise_api_url}{ip}", headers=headers)
-                    response = response.json()
-                    response["link"] = "https://www.greynoise.io/viz/riot/" + ip
+                    riot_response = requests.get(f"{greynoise_api_url}{ip}", headers=headers)
+                    riot_response = riot_response.json()
+                    riot_response["link"] = "https://www.greynoise.io/viz/riot/" + ip
                     for feature in enterprise_riot_mapping.keys():
-                        value = response.get(feature)
+                        value = riot_response.get(feature)
                         if value:
                             attribute_type, relation = enterprise_riot_mapping[
                                 feature]
@@ -171,7 +171,7 @@ def handler(q=False):  # noqa: C901
                 results = {key: event[key] for key in ('Attribute', 'Object') if
                            (key in event and event[key])}
                 return {'results': results}
-            elif response.json()["noise"]:
+            else:
                 response = response.json()
                 community_context_object = MISPObject('greynoise-community-ip-context')
                 for feature in community_mapping.keys():
