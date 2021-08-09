@@ -121,9 +121,9 @@ def handler(q=False):  # noqa: C901
 
         if response.status_code == 200:
             response = response.json()
-            vulnerability_object = MISPObject('vulnerability')
-            response["details"] = "The Count below reflects the Number of IPs seen by " \
-                                  "GreyNoise in the last 7 days scanning for this CVE."
+            vulnerability_object = MISPObject('greynoise-vuln-info')
+            response["details"] = "The IP count below reflects the number of IPs seen " \
+                                  "by GreyNoise in the last 7 days scanning for this CVE."
             response["id"] = vulnerability
             for feature in ('id', 'details', 'count'):
                 value = response.get(feature)
