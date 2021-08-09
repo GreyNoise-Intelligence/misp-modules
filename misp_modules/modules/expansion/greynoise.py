@@ -25,6 +25,11 @@ codes_mapping = {
     "0x09": "IP was found in RIOT",
     "0x10": "IP has been observed by the GreyNoise sensor network and is in RIOT",
 }
+vulnerability_mapping = {
+    'id': ('vulnerability', 'id'), 'summary': ('text', 'summary'),
+    'vulnerable_count': ('text', 'count')}
+misp_event = MISPEvent()
+misp_event.add_attribute(**attribute)
 
 
 def handler(q=False):  # noqa: C901
@@ -115,17 +120,21 @@ def handler(q=False):  # noqa: C901
         response = requests.get(f"{greynoise_api_url}", headers=headers, params=querystring)  # Real request
 
         if response.status_code == 200:
-            return {
-                "results": [
-                    {
-                        "types": ["text"],
-                        "values": "GreyNoise has observed {} distinct IPs scanning for "
-                        "CVE ({}) over the last 7 days. For more information "
-                        "visit https://www.greynoise.io/viz/query/?gnql="
-                        "cve%3A{}%20last_seen%3A1w".format(response.json()["count"], vulnerability, vulnerability),
-                    }
-                ]
-            }
+            vulnerability_object = MISPObject('vulnderability')
+            response["summary"] = "test summary"
+            response["id"] = vulnerability
+            for feature in ('id', 'summary', 'count'):
+                value = response.get(feature)
+                if value:
+                    attribute_type, relation = self.vulnerability_mapping[feature]
+                    vulnerability_object.add_attribute(relation,
+                                                       **{'type': attribute_type,
+                                                          'value': value})
+            misp_event.add_object(vulnerability_object)
+            event = json.loads(misp_event.to_json())
+            results = {key: event[key] for key in ('Attribute', 'Object') if
+                       (key in event and event[key])}
+            return {'results': results}
 
     # There is an error
     errors = {
