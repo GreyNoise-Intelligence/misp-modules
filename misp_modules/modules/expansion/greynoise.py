@@ -74,7 +74,10 @@ def handler(q=False):  # noqa: C901
                 response = response.json()
                 enterprise_context_object = MISPObject('greynoise-ip-context')
                 for feature in ('ip', 'code_message'):
-                    value = response.get(feature)
+                    if feature == "code_message":
+                        value = codes_mapping[response.get(code)]
+                    else:
+                        value = response.get(feature)
                     if value:
                         attribute_type, relation = enterprise_context_basic_mapping[feature]
                         enterprise_context_object.add_attribute(relation,
